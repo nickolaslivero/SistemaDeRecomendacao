@@ -33,3 +33,14 @@ if st.button("Mostrar recomendações"):
     recommendations_df = pd.DataFrame(recommendations, columns=['Filme Recomendado', 'Média de Avaliação'])
     st.write("Filmes recomendados:")
     st.dataframe(recommendations_df)
+
+# Seção para avaliação do filme pelo usuário
+st.header("Avalie um Filme")
+user_movie = st.selectbox("Selecione um filme para avaliar:", df['Filme'].unique())
+user_rating = st.slider("Avalie o filme:", 1, 5)
+submit_button = st.button("Enviar Avaliação")
+
+if submit_button:
+    new_rating = pd.DataFrame({'Usuário': ['Novo'], 'Filme': [user_movie], 'Avaliação': [user_rating]})
+    df = pd.concat([df, new_rating], ignore_index=True)
+    st.success("Avaliação enviada com sucesso!")
