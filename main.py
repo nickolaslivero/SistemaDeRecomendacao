@@ -1,32 +1,29 @@
 import pandas as pd
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 import streamlit as st
+from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.preprocessing import MinMaxScaler
 
-file_path = 'dataset.csv'
+
+file_path = 'dataset_avaliacoes.csv'
 df = pd.read_csv(file_path)
 
+pivot_table = df.pivot_table(index='Filme', columns='Usuário', values='Avaliação').fillna(0)
+scaler = MinMaxScaler()
+normalized = scaler.fit_transform(pivot_table)
+similarity_matrix = euclidean_distances(normalized, normalized)
 
-df['combined_features'] = df['book title'] + ' ' + df['author'] + ' ' + df['genre']
+st.title("Sistema de Filtragem Colaborativa")
 
-tfidf = TfidfVectorizer(stop_words='english')
-tfidf_matrix = tfidf.fit_transform(df['combined_features'])
+selected_movie = st.selectbox("Selecione um filme:", df['Filme'].unique())
 
-cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
+def get_recommendations_euclidean(movie_name, similarity_matrix):
+    movie_index = pivot_table.index.get_loc(movie_name)
+    similar_scores = similarity_matrix[movie_index]
+    similar_movies = list(pivot_table.iloc[similar_scores.argsort()][:6].index)
+    similar_movies.remove(movie_name)
+    return similar_movies[:5]
 
-def get_recommendations(book_title):
-    idx = df[df['book title'] == book_title].index[0]
-    sim_scores = list(enumerate(cosine_sim[idx]))
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    sim_scores = sim_scores[1:6]  # Recomendar os 5 livros mais similares
-    book_indices = [i[0] for i in sim_scores]
-    return df.iloc[book_indices][['book title', 'author', 'genre', 'year of publication', 'rating']]
-
-
-st.title('Sistema de Recomendação de Livros')
-
-selected_book = st.selectbox('Selecione um livro:', df['book title'].unique())
-
-if st.button('Obter Recomendações'):
-    recommendations = get_recommendations(selected_book)
-    st.table(recommendations)
+if st.button("Mostrar recomendações"):
+    recommendations = get_recommendations_euclidean(selected_movie, similarity_matrix)
+    st.write("Filmes recomendados:")
+    st.dataframe(recommendations)
